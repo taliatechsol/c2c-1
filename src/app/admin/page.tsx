@@ -1,14 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Activity, CheckCircle2, AlertCircle, Server, Radio, Database } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { Users, Activity, CheckCircle2, AlertCircle, Server, Radio, Database, ShieldCheck } from "lucide-react";
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          router.push("/login");
+          return;
+        }
+
+        // Optional: Check email domain
+        if (user.email && !user.email.endsWith("@taliatech.in")) {
+          // You might want to redirect to a 'not authorized' page, but for now /login is fine
+          // or just show an error. Let's redirect to login for simplicity.
+          router.push("/login");
+          return;
+        }
+
+        setAuthLoading(false);
+      } catch (err) {
+        router.push("/login");
+      }
+    }
+
+    checkAuth();
+  }, [router]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
     async function fetchLeads() {
       try {
         const res = await fetch("/api/leads");
@@ -23,7 +56,27 @@ export default function AdminDashboard() {
     }
 
     fetchLeads();
-  }, []);
+  }, [authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-slate-950 text-cyan-400">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 animate-ping rounded-full bg-cyan-500/20" />
+          <ShieldCheck className="relative h-16 w-16 text-cyan-500 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <h2 className="font-mono text-xl font-black uppercase tracking-[0.3em]">Verifying Identity</h2>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-900 border border-cyan-900/30">
+              <div className="h-full animate-pulse bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" style={{ width: '60%' }} />
+            </div>
+            <span className="font-mono text-[10px] text-cyan-500/50 uppercase tracking-widest">Secure_Auth_v2.4</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300 dark">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function Onboard() {
   const router = useRouter();
@@ -11,8 +12,32 @@ export default function Onboard() {
     graduation_year: new Date().getFullYear(),
     department: '',
   });
-  const [loading, setLoading] = useState(false);
+  const [authId, setAuthId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          router.push('/login');
+          return;
+        }
+        setAuthId(user.id);
+        if (user.email) {
+          setFormData(prev => ({ ...prev, email: user.email || '' }));
+        }
+      } catch (err) {
+        console.error('Auth check error:', err);
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkUser();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,14 +49,22 @@ export default function Onboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!authId) {
+      setError('Authentication required');
+      return;
+    }
+    
+    setSubmitting(true);
     setError('');
 
     try {
       const res = await fetch('/api/onboard/student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          auth_id: authId,
+        }),
       });
 
       if (!res.ok) {
@@ -51,9 +84,17 @@ export default function Onboard() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -93,9 +134,10 @@ export default function Onboard() {
                 name="email"
                 type="email"
                 required
+                readOnly={!!authId}
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm opacity-75"
               />
             </div>
             <div>
@@ -131,10 +173,10 @@ export default function Onboard() {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {loading ? 'Registering...' : 'Register'}
+              {submitting ? 'Registering...' : 'Register'}
             </button>
           </div>
         </form>

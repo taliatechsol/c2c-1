@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { 
   Users, 
   Download, 
@@ -22,7 +23,8 @@ import {
   LayoutDashboard,
   Zap,
   Brain,
-  Rocket
+  Rocket,
+  ShieldCheck
 } from "lucide-react";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
@@ -31,11 +33,31 @@ const mono = JetBrains_Mono({ subsets: ["latin"] });
 
 export default function TPODashboard() {
   const { id } = useParams();
+  const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [interventionCollapsed, setInterventionCollapsed] = useState(false);
 
   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          router.push("/login");
+          return;
+        }
+        setAuthLoading(false);
+      } catch (err) {
+        router.push("/login");
+      }
+    }
+    checkAuth();
+  }, [router]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
     const fetchData = async () => {
       try {
         const res = await fetch(`/api/cohort/${id}`);
@@ -62,7 +84,27 @@ export default function TPODashboard() {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, authLoading]);
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-[#0e1416] text-[#8aebff]">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 animate-ping rounded-full bg-[#8aebff]/20" />
+          <ShieldCheck className="relative h-16 w-16 text-[#8aebff] drop-shadow-[0_0_15px_rgba(138,235,255,0.8)]" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <h2 className={`text-xl font-black uppercase tracking-[0.3em] ${mono.className}`}>Verifying Identity</h2>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-white/5 border border-[#8aebff]/30">
+              <div className="h-full animate-pulse bg-[#8aebff] shadow-[0_0_8px_rgba(138,235,255,0.6)]" style={{ width: '60%' }} />
+            </div>
+            <span className={`text-[10px] text-[#8aebff]/50 uppercase tracking-widest ${mono.className}`}>Protocol_Secure_v4</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

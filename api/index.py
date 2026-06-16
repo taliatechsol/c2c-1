@@ -32,17 +32,10 @@ RECOMMENDATION_MAPPING = {
     "Builder": ["Engineer", "Developer", "Researcher", "Architect"],
     "Leader": ["Manager", "Lead", "Culture", "Director"],
     "Rainmaker": ["Sales", "Partnership", "Advocate", "Growth"],
-    "Anchor": ["Operations", "QA", "SRE", "DevOps", "Analyst"]
+    "Anchor": ["Operations", "QA", "SRE", "DevOps", "Analyst", "Data"]
 }
 
 # --- MODELS ---
-
-RECOMMENDATION_MAPPING = {
-    "Builder": ["Engineer", "Developer", "Researcher", "Architect"],
-    "Leader": ["Manager", "Lead", "Culture", "Director"],
-    "Rainmaker": ["Sales", "Partnership", "Advocate", "Growth"],
-    "Anchor": ["Operations", "QA", "SRE", "DevOps", "Analyst", "Data"]
-}
 
 class InstitutionOnboard(BaseModel):
     name: str
@@ -55,6 +48,7 @@ class StudentOnboard(BaseModel):
     email: str
     graduation_year: int
     department: str
+    auth_id: Optional[str] = None
 
 class AssessmentSubmit(BaseModel):
     student_id: str
