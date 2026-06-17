@@ -27,10 +27,9 @@ except ImportError:
     def get_client(): return None
 
 app = FastAPI()
-router = APIRouter(prefix="/api")
 
 # --- CONSTANTS ---
-# ... (rest of constants)
+
 RECOMMENDATION_MAPPING = {
     "Builder": ["Engineer", "Developer", "Researcher", "Architect"],
     "Leader": ["Manager", "Lead", "Culture", "Director"],
@@ -39,7 +38,7 @@ RECOMMENDATION_MAPPING = {
 }
 
 # --- MODELS ---
-# ... (all models)
+
 class InstitutionOnboard(BaseModel):
     name: str
     type: str
@@ -78,7 +77,7 @@ class PortfolioRequest(BaseModel):
     folders: List[Dict[str, Any]]
 
 # --- HELPERS ---
-# ... (all helpers)
+
 def parse_scoring_logic(logic_str: str, item_type: str) -> Dict[str, Any]:
     if not logic_str or not isinstance(logic_str, str):
         return {}
@@ -86,12 +85,10 @@ def parse_scoring_logic(logic_str: str, item_type: str) -> Dict[str, Any]:
     logic = {}
     item_type_lower = item_type.lower()
     if "sjt" in item_type_lower:
-        # Parses "B: 4, A: 2, C: 0, D: 1." into a dict
         matches = re.findall(r'([A-E]):\s*(\d+)', logic_str)
         if matches:
             logic["mapping"] = {k: int(v) for k, v in matches}
     elif "likert" in item_type_lower:
-        # Detects "High score = high..." and sets direction
         if "high score = high" in logic_str.lower():
             logic["direction"] = "forward"
         elif "low score = high" in logic_str.lower() or "reverse" in logic_str.lower():
@@ -131,7 +128,7 @@ def generate_development_report(scores: Dict[str, int], founder_profile: str) ->
         
     return report
 
-# --- LOGIC COPIED FROM C2C_ORCHESTRATOR_V2.py ---
+# --- ORCHESTRATOR LOGIC ---
 
 class C2C_Orchestrator_V2:
     def __init__(self, candidate_name, audit_gaps):
@@ -220,9 +217,11 @@ def generate_portfolio_json(portfolio_data):
     }
     return {"projects": projects_list, "aboutMeContent": aboutMeContent}
 
-# --- ENDPOINTS ---
+# --- API ROUTER ---
 
-@app.get("/")
+router = APIRouter()
+
+@router.get("/")
 def status():
     return {"status": "c2c api online"}
 
@@ -234,6 +233,7 @@ async def onboard_institution(inst: InstitutionOnboard):
         res = client.table("institutions").upsert(inst.dict(), on_conflict="domain").execute()
         return res.data
     except Exception as e:
+        print(f"ERROR onboard_institution: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/onboard/student")
@@ -241,15 +241,18 @@ async def onboard_student(student: StudentOnboard):
     client = get_client()
     if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     domain = student.email.split("@")[-1]
-    inst_res = client.table("institutions").select("*").eq("domain", domain).execute()
-    if not inst_res.data:
-        raise HTTPException(status_code=400, detail="Institution domain not registered")
     try:
+        inst_res = client.table("institutions").select("*").eq("domain", domain).execute()
+        if not inst_res.data:
+            raise HTTPException(status_code=400, detail="Institution domain not registered")
+        
         data = student.dict()
         data["institution_id"] = inst_res.data[0]["id"]
         res = client.table("students").insert(data).execute()
         return res.data
+    except HTTPException: raise
     except Exception as e:
+        print(f"ERROR onboard_student: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/assessment/generate")
@@ -267,6 +270,7 @@ async def generate_assessment(num_per_section: int = 25):
                 final_items.extend(random.sample(items, count))
         return final_items
     except Exception as e:
+        print(f"ERROR generate_assessment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/assessment/submit")
@@ -282,33 +286,23 @@ async def submit_assessment(submit: AssessmentSubmit):
         for resp in submit.responses:
             item = items_map.get(resp["item_id"])
             if not item: continue
-            
             val, dim = resp["response"], item["primary_dimension"]
-            
-            # Robust scoring_logic retrieval
             logic_raw = item.get("scoring_logic")
-            if isinstance(logic_raw, dict):
-                logic_str = logic_raw.get("raw", "")
-            else:
-                logic_str = str(logic_raw) if logic_raw is not None else ""
-                
+            logic_str = logic_raw.get("raw", "") if isinstance(logic_raw, dict) else str(logic_raw or "")
             logic = parse_scoring_logic(logic_str, item["item_type"])
             
             if item["item_type"].lower() == "likert":
                 try:
-                    score = int(val)
-                    if logic.get("direction") == "reverse": score = 6 - score
-                    scores[dim] += score
-                except ValueError: pass
+                    s = int(val)
+                    if logic.get("direction") == "reverse": s = 6 - s
+                    scores[dim] += s
+                except: pass
             elif item["item_type"].lower() == "cognitive":
                 if str(val) == str(logic.get("correct_answer")): scores[dim] += 1
             elif "sjt" in item["item_type"].lower():
-                mapping = logic.get("mapping") or {}
-                if val in mapping:
-                    scores[dim] += mapping[val]
+                m = logic.get("mapping") or {}
+                if val in m: scores[dim] += m[val]
         
-        # Map scores to 'Primary Founder Profile'
-        # Builder: High IQ+AQ, Leader: High EQ+SQ, Rainmaker: High SQ+AQ, Anchor: High IQ+EQ
         founder_fit = {
             "Builder": scores.get("IQ", 0) + scores.get("AQ", 0),
             "Leader": scores.get("EQ", 0) + scores.get("SQ", 0),
@@ -316,19 +310,19 @@ async def submit_assessment(submit: AssessmentSubmit):
             "Anchor": scores.get("IQ", 0) + scores.get("EQ", 0)
         }
         primary_profile = max(founder_fit, key=founder_fit.get)
+        dev_report = generate_development_report(scores, primary_profile)
         
-        development_report = generate_development_report(scores, primary_profile)
-        
-        result_payload = {
+        payload = {
             "student_id": submit.student_id, 
             "dimension_scores": scores, 
             "founder_fit": founder_fit,
             "primary_profile": primary_profile,
-            "development_report": development_report
+            "development_report": dev_report
         }
-        client.table("assessments").insert(result_payload).execute()
-        return result_payload
+        client.table("assessments").insert(payload).execute()
+        return payload
     except Exception as e:
+        print(f"ERROR submit_assessment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/cohort/{institution_id}")
@@ -337,49 +331,30 @@ async def get_cohort_report(institution_id: str):
     if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     try:
         students_res = client.table("students").select("id").eq("institution_id", institution_id).execute()
-        if not students_res.data:
-            return {"averages": {}, "founder_distribution": {}, "support_needs": []}
-            
-        student_ids = [s["id"] for s in students_res.data]
+        if not students_res.data: return {"averages": {}, "founder_distribution": {}, "support_needs": []}
+        ids = [s["id"] for s in students_res.data]
+        assess_res = client.table("assessments").select("*").in_("student_id", ids).execute()
+        if not assess_res.data: return {"averages": {}, "founder_distribution": {}, "support_needs": []}
         
-        assessments_res = client.table("assessments").select("*").in_("student_id", student_ids).execute()
-        assessments = assessments_res.data
-        
-        if not assessments:
-            return {"averages": {}, "founder_distribution": {}, "support_needs": []}
-            
-        total_students = len(assessments)
+        total = len(assess_res.data)
         sums = {"IQ": 0, "EQ": 0, "SQ": 0, "AQ": 0, "SpQ": 0}
-        profile_counts = {"Builder": 0, "Leader": 0, "Rainmaker": 0, "Anchor": 0}
+        counts = {"Builder": 0, "Leader": 0, "Rainmaker": 0, "Anchor": 0}
         
-        for a in assessments:
-            scores = a.get("dimension_scores", {})
-            for dim in sums.keys():
-                sums[dim] += scores.get(dim, 0)
+        for a in assess_res.data:
+            s = a.get("dimension_scores", {})
+            for d in sums: sums[d] += s.get(d, 0)
+            p = a.get("primary_profile")
+            if p in counts: counts[p] += 1
                 
-            profile = a.get("primary_profile")
-            if profile in profile_counts:
-                profile_counts[profile] += 1
-                
-        averages = {dim: total / total_students for dim, total in sums.items()}
-        founder_distribution = {prof: (count / total_students) * 100 for prof, count in profile_counts.items()}
-        
-        support_needs = []
-        if averages.get("AQ", 0) < 50:
-            support_needs.append("Cohort average AQ is below 50. Consider implementing resilience and stress-management workshops.")
-        if averages.get("IQ", 0) < 50:
-            support_needs.append("Cohort average IQ is below 50. Evaluate if core curriculum needs reinforcement.")
-        if averages.get("EQ", 0) < 50:
-            support_needs.append("Cohort average EQ is below 50. Encourage teamwork, communication, and empathy training.")
-        if averages.get("SQ", 0) < 50:
-            support_needs.append("Cohort average SQ is below 50. Recommend more social engagement and networking opportunities.")
+        avgs = {d: t / total for d, t in sums.items()}
+        dist = {p: (c / total) * 100 for p, c in counts.items()}
+        needs = []
+        if avgs.get("AQ", 0) < 50: needs.append("Low AQ detected. Implement resilience workshops.")
+        if avgs.get("EQ", 0) < 50: needs.append("Low EQ detected. Encourage teamwork training.")
             
-        return {
-            "averages": averages,
-            "founder_distribution": founder_distribution,
-            "support_needs": support_needs
-        }
+        return {"averages": avgs, "founder_distribution": dist, "support_needs": needs}
     except Exception as e:
+        print(f"ERROR get_cohort_report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/leads")
@@ -390,17 +365,7 @@ async def get_leads():
         res = client.table("market_leads").select("*").order("ai_score", desc=True).execute()
         return res.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/feedback/submit")
-async def submit_feedback(submit: FeedbackSubmit):
-    client = get_client()
-    if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
-    try:
-        result_payload = submit.dict()
-        res = client.table("peer_feedback").insert(result_payload).execute()
-        return res.data
-    except Exception as e:
+        print(f"ERROR get_leads: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/student/{student_id}")
@@ -408,29 +373,23 @@ async def get_student(student_id: str):
     client = get_client()
     if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     try:
-        student_res = client.table("students").select("*").eq("id", student_id).execute()
-        if not student_res.data:
-            raise HTTPException(status_code=404, detail="Student not found")
-
-        assessment_res = client.table("assessments").select("*").eq("student_id", student_id).execute()
+        s_res = client.table("students").select("*").eq("id", student_id).execute()
+        if not s_res.data: raise HTTPException(status_code=404, detail="Student not found")
+        a_res = client.table("assessments").select("*").eq("student_id", student_id).execute()
+        f_res = client.table("peer_feedback").select("*").eq("student_id", student_id).execute()
         
-        peer_feedback_res = client.table("peer_feedback").select("*").eq("student_id", student_id).execute()
         peer_scores = None
-        if peer_feedback_res.data:
-            num_feedbacks = len(peer_feedback_res.data)
+        if f_res.data:
+            n = len(f_res.data)
             sums = {}
-            for pf in peer_feedback_res.data:
-                for dim, score in pf.get("dimension_scores", {}).items():
-                    sums[dim] = sums.get(dim, 0) + score
-            peer_scores = {dim: total / num_feedbacks for dim, total in sums.items()}
+            for f in f_res.data:
+                for d, sc in f.get("dimension_scores", {}).items(): sums[d] = sums.get(d, 0) + sc
+            peer_scores = {d: t / n for d, t in sums.items()}
 
-        return {
-            "student": student_res.data[0],
-            "assessments": assessment_res.data,
-            "peer_scores": peer_scores
-        }
+        return {"student": s_res.data[0], "assessments": a_res.data, "peer_scores": peer_scores}
     except HTTPException: raise
     except Exception as e:
+        print(f"ERROR get_student: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/employer/candidates")
@@ -438,72 +397,40 @@ async def get_employer_candidates():
     client = get_client()
     if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     try:
-        students_res = client.table("students").select("*").execute()
-        if not students_res.data:
-            return []
-
-        students = students_res.data
-        student_ids = [s["id"] for s in students]
-
-        assessments_res = client.table("assessments").select("*").in_("student_id", student_ids).execute()
-        assessments = assessments_res.data or []
-
-        latest_assessments = {}
-        for a in assessments:
-            student_id = a["student_id"]
-            if student_id not in latest_assessments or a.get("created_at", "") > latest_assessments[student_id].get("created_at", ""):
-                latest_assessments[student_id] = a
-
+        s_res = client.table("students").select("*").execute()
+        if not s_res.data: return []
+        ids = [s["id"] for s in s_res.data]
+        a_res = client.table("assessments").select("*").in_("student_id", ids).execute()
+        latest = {}
+        for a in (a_res.data or []):
+            sid = a["student_id"]
+            if sid not in latest or a.get("created_at", "") > latest[sid].get("created_at", ""): latest[sid] = a
         results = []
-        for s in students:
-            assessment = latest_assessments.get(s["id"])
-            if not assessment:
-                continue
-
-            scores = assessment.get("dimension_scores", {})
-            iq = scores.get("IQ", 0)
-            aq = scores.get("AQ", 0)
-            eq = scores.get("EQ", 0)
-            sq = scores.get("SQ", 0)
-            spq = scores.get("SpQ", 0)
-
-            tech_fit_index = (iq + aq) / 2
-            sales_fit_index = (eq + sq + spq) / 3
-
+        for s in s_res.data:
+            ass = latest.get(s["id"])
+            if not ass: continue
+            sc = ass.get("dimension_scores", {})
             results.append({
-                "id": s["id"],
-                "name": s.get("full_name", "Unknown"),
-                "primary_profile": assessment.get("primary_profile", "Unknown"),
-                "dimension_scores": scores,
-                "tech_fit_index": tech_fit_index,
-                "sales_fit_index": sales_fit_index
+                "id": s["id"], "name": s.get("full_name", "Unknown"), 
+                "primary_profile": ass.get("primary_profile", "Unknown"),
+                "dimension_scores": sc,
+                "tech_fit_index": (sc.get("IQ", 0) + sc.get("AQ", 0)) / 2,
+                "sales_fit_index": (sc.get("EQ", 0) + sc.get("SQ", 0) + sc.get("SpQ", 0)) / 3
             })
-
         return results
     except Exception as e:
+        print(f"ERROR get_employer_candidates: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/audit")
-async def audit(request: AuditRequest):
+@router.post("/feedback/submit")
+async def submit_feedback(submit: FeedbackSubmit):
+    client = get_client()
+    if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     try:
-        result = score_job_lead(request.job_description, request.candidate)
-        return result.as_dict()
+        res = client.table("peer_feedback").insert(submit.dict()).execute()
+        return res.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/ordeal")
-async def ordeal(request: OrdealRequest):
-    try:
-        orchestrator = C2C_Orchestrator_V2(request.candidate_name, request.gaps)
-        return orchestrator.run_ordeal_session()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/portfolio")
-async def portfolio(request: PortfolioRequest):
-    try:
-        return generate_portfolio_json(request.dict())
-    except Exception as e:
+        print(f"ERROR submit_feedback: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/alerts/student/{student_id}")
@@ -511,14 +438,29 @@ async def get_student_alerts(student_id: str):
     client = get_client()
     if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
     try:
-        # Fetch alerts and join with market_leads
-        # Supabase Python client handles joins by referencing the foreign key table
-        alerts_res = client.table("match_alerts").select("*, market_leads(*)").eq("student_id", student_id).order("created_at", desc=True).execute()
-        return alerts_res.data
+        res = client.table("match_alerts").select("*, market_leads(*)").eq("student_id", student_id).order("created_at", desc=True).execute()
+        return res.data
     except Exception as e:
-        print(f"Error fetching alerts (table might not exist yet): {e}")
+        print(f"ERROR get_student_alerts: {e}")
         return []
 
-app.include_router(router)
+@router.get("/export/student/{student_id}")
+async def export_student_pdf(student_id: str):
+    client = get_client()
+    if not client: raise HTTPException(status_code=500, detail="Supabase client not initialized")
+    try:
+        s_res = client.table("students").select("*").eq("id", student_id).execute()
+        if not s_res.data: raise HTTPException(status_code=404, detail="Student not found")
+        a_res = client.table("assessments").select("*").eq("student_id", student_id).order("created_at", desc=True).limit(1).execute()
+        if not a_res.data: raise HTTPException(status_code=404, detail="Assessment not found")
+        pdf_bytes = generate_student_pdf(s_res.data[0], a_res.data[0])
+        return Response(content=pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=c2c_legend_{student_id}.pdf"})
+    except Exception as e:
+        print(f"ERROR export_student_pdf: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+app.include_router(router, prefix="/api")
 
+@app.get("/")
+def root():
+    return {"status": "c2c api root online"}
