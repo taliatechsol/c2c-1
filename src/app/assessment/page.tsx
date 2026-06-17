@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Terminal, Shield, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Loader2, Terminal, Shield, AlertTriangle, ChevronRight, Zap, Activity, Cpu, Layers } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -22,6 +22,7 @@ export default function Assessment() {
   const [studentId, setStudentId] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  const [syncProgress, setSyncProgress] = useState(0);
 
   useEffect(() => {
     const id = localStorage.getItem('student_id') || `stu-${Date.now()}`;
@@ -29,23 +30,25 @@ export default function Assessment() {
     localStorage.setItem('student_id', id);
 
     const fetchQuestions = async () => {
-      // Simulate terminal loading
+      // Neural Syncing Animation
       const messages = [
-        "ESTABLISHING_SECURE_CONNECTION...",
+        "ESTABLISHING_SECURE_LINK...",
         "DECRYPTING_ORDEAL_PROTOCOLS...",
-        "FETCHING_PSYCHOMETRIC_BANK...",
-        "INITIALIZING_C2C_ENVIRONMENT...",
-        "READY."
+        "SYNCING_NEURAL_INTERFACE...",
+        "UPLOADING_PSYCHOMETRIC_BANK...",
+        "CALIBRATING_STRESS_VECTORS...",
+        "SYSTEM_READY."
       ];
       
       for (let i = 0; i < messages.length; i++) {
         setTerminalLines(prev => [...prev, messages[i]]);
-        await new Promise(resolve => setTimeout(resolve, 400));
+        setSyncProgress((i + 1) * (100 / messages.length));
+        await new Promise(resolve => setTimeout(resolve, 600));
       }
 
       try {
         const res = await fetch('/api/assessment/generate?num_per_section=5');
-        if (!res.ok) throw new Error('Failed to fetch questions');
+        if (!res.ok) throw new Error('PROTOCOL_FETCH_FAILURE');
         const data = await res.json();
         setQuestions(data);
       } catch (err: any) {
@@ -89,7 +92,7 @@ export default function Assessment() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to submit assessment');
+      if (!res.ok) throw new Error('SUBMISSION_ERROR');
       
       router.push(`/dashboard/${studentId}`); 
     } catch (err: any) {
@@ -100,25 +103,51 @@ export default function Assessment() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center p-6 font-mono">
-        <div className="w-full max-w-2xl bg-black/40 border border-[#2fd9f4]/20 p-8 rounded-lg shadow-[0_0_50px_rgba(47,217,244,0.05)]">
-          <div className="flex items-center gap-2 mb-6 border-b border-[#2fd9f4]/10 pb-4">
-            <Terminal className="w-5 h-5 text-[#2fd9f4]" />
-            <span className="text-[#2fd9f4] text-sm tracking-widest font-bold uppercase">System_Initialization</span>
-          </div>
-          <div className="space-y-3">
-            {terminalLines.map((line, i) => (
-              <div key={i} className="flex gap-3 text-sm">
-                <span className="text-[#2fd9f4]/40">[{i.toString().padStart(2, '0')}]</span>
-                <span className={i === terminalLines.length - 1 ? "text-[#8aebff] animate-pulse" : "text-[#8aebff]/70"}>
-                  {line}
-                </span>
-              </div>
-            ))}
-            <div className="flex gap-3 text-sm">
-              <span className="text-[#2fd9f4]/40">[{terminalLines.length.toString().padStart(2, '0')}]</span>
-              <span className="w-2 h-4 bg-[#2fd9f4] animate-bounce"></span>
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center p-6 font-mono overflow-hidden">
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10"></div>
+        
+        <div className="w-full max-w-2xl z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-3 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full mb-6">
+              <Cpu className="w-5 h-5 text-cyan-400 animate-spin" />
+              <span className="text-cyan-400 text-sm font-bold tracking-[0.3em] uppercase">Neural_Syncing...</span>
             </div>
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">Initializing_The_Ordeal</h2>
+            <p className="text-[#bbc9cd] text-xs tracking-widest uppercase opacity-60">Do not disconnect from the interface</p>
+          </div>
+
+          <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-white/5 overflow-hidden">
+               <div className="h-full bg-cyan-500 transition-all duration-500 ease-out" style={{ width: `${syncProgress}%` }}></div>
+            </div>
+            
+            <div className="space-y-4">
+              {terminalLines.map((line, i) => (
+                <div key={i} className="flex gap-4 text-xs">
+                  <span className="text-white/20 font-bold">[{i.toString().padStart(2, '0')}]</span>
+                  <span className={i === terminalLines.length - 1 ? "text-cyan-400 font-bold animate-pulse" : "text-cyan-400/60"}>
+                    {line}
+                  </span>
+                </div>
+              ))}
+              <div className="flex gap-4 text-xs">
+                <span className="text-white/20 font-bold">[{terminalLines.length.toString().padStart(2, '0')}]</span>
+                <span className="w-2 h-4 bg-cyan-400 animate-bounce"></span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 flex justify-center gap-8">
+             <div className="flex flex-col items-center">
+                <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold mb-2">Uptime</span>
+                <span className="text-cyan-400/60 font-mono text-xs">99.999%</span>
+             </div>
+             <div className="w-[1px] h-8 bg-white/10"></div>
+             <div className="flex flex-col items-center">
+                <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold mb-2">Enc_Mode</span>
+                <span className="text-cyan-400/60 font-mono text-xs">AES-256</span>
+             </div>
           </div>
         </div>
       </div>
@@ -128,15 +157,15 @@ export default function Assessment() {
   if (error && questions.length === 0) {
     return (
       <div className="min-h-screen bg-[#0e1416] flex items-center justify-center p-6 font-mono">
-        <div className="w-full max-w-md bg-black/40 border border-red-500/20 p-8 rounded-lg text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-red-500 text-xl font-bold mb-2 tracking-widest uppercase">Corruption_Detected</h2>
-          <p className="text-red-400/70 text-sm mb-8">{error}</p>
+        <div className="w-full max-w-md bg-black/40 border border-red-500/20 p-8 rounded-lg text-center shadow-[0_0_50px_rgba(239,68,68,0.1)]">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6 animate-pulse" />
+          <h2 className="text-red-500 text-2xl font-black mb-2 tracking-tighter uppercase">CORE_CORRUPTION</h2>
+          <p className="text-red-400/70 text-sm mb-8 font-medium">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="w-full py-3 bg-red-900/20 text-red-500 border border-red-500/50 rounded hover:bg-red-900/40 transition-all font-bold tracking-widest uppercase text-xs"
+            className="w-full py-4 bg-red-950/20 text-red-500 border border-red-500/50 rounded-sm hover:bg-red-500 hover:text-white transition-all font-black tracking-[0.2em] uppercase text-xs"
           >
-            Reboot_System
+            PURGE_AND_REBOOT
           </button>
         </div>
       </div>
@@ -145,13 +174,17 @@ export default function Assessment() {
 
   if (submitting) {
     return (
-      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center flex-col p-6 font-mono">
-        <div className="relative w-24 h-24 mb-8">
-          <div className="absolute inset-0 rounded-full border-4 border-[#2fd9f4]/10"></div>
-          <div className="absolute inset-0 rounded-full border-t-4 border-[#2fd9f4] animate-spin shadow-[0_0_15px_#2fd9f4]"></div>
-          <Shield className="absolute inset-0 m-auto w-10 h-10 text-[#2fd9f4] animate-pulse" />
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center flex-col p-6 font-mono relative overflow-hidden">
+        <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10"></div>
+        <div className="relative w-32 h-32 mb-12">
+          <div className="absolute inset-0 rounded-full border-4 border-cyan-500/10"></div>
+          <div className="absolute inset-0 rounded-full border-t-4 border-cyan-400 animate-spin shadow-[0_0_30px_#06b6d4]"></div>
+          <Shield className="absolute inset-0 m-auto w-12 h-12 text-cyan-400 animate-pulse" />
         </div>
-        <p className="text-[#2fd9f4] text-sm tracking-[0.3em] font-bold uppercase animate-pulse">Compiling_Results...</p>
+        <div className="text-center z-10">
+           <p className="text-cyan-400 text-sm tracking-[0.5em] font-black uppercase animate-pulse mb-4">COMPILING_LEGEND_MATRIX...</p>
+           <p className="text-white/40 text-[10px] tracking-widest uppercase font-bold">Verifying integrity of responses</p>
+        </div>
       </div>
     );
   }
@@ -176,69 +209,81 @@ export default function Assessment() {
   const progressPercentage = ((currentIndex) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#0e1416] text-[#dde4e5] selection:bg-[#2fd9f4]/30 selection:text-white pb-12">
+    <div className="min-h-screen bg-[#0e1416] text-[#dde4e5] selection:bg-cyan-500/30 selection:text-white pb-24 relative overflow-hidden">
       
       {/* Immersive Header */}
-      <div className="w-full bg-black/40 border-b border-[#2fd9f4]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex flex-col gap-4">
-          <div className="flex justify-between items-end font-mono">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-[#2fd9f4]/60 uppercase tracking-[0.2em] font-bold">Session_Identifier</span>
-              <span className="text-xs text-[#2fd9f4] font-bold tracking-widest">STU-{studentId.split('-').pop()?.toUpperCase()}</span>
+      <div className="w-full bg-black/60 border-b border-white/5 backdrop-blur-2xl sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          <div className="flex justify-between items-end font-mono mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/20 rounded border border-indigo-500/30">
+                 <Shield className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">IDENTIFIER</span>
+                <span className="text-xs text-indigo-400 font-bold tracking-[0.2em]">STU-{studentId.split('-').pop()?.toUpperCase()}</span>
+              </div>
             </div>
-            <div className="text-right flex flex-col gap-1">
-              <span className="text-[10px] text-[#2fd9f4]/60 uppercase tracking-[0.2em] font-bold">Progress_Metrics</span>
-              <span className="text-xs text-[#2fd9f4] font-bold tracking-widest">{currentIndex + 1} / {questions.length}</span>
+            <div className="text-right flex flex-col items-end">
+              <div className="flex items-center gap-2 mb-1">
+                 <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">ORDEAL_PROGRESS</span>
+                 <span className="text-xs text-cyan-400 font-bold tabular-nums tracking-widest">{currentIndex + 1} / {questions.length}</span>
+              </div>
+              <div className="text-[10px] text-white/20 font-bold uppercase tracking-widest flex items-center gap-2">
+                 <Activity className="w-3 h-3 text-green-500 animate-pulse" /> Live_Sync_Active
+              </div>
             </div>
           </div>
           
           {/* Segmented Progress Bar */}
-          <div className="relative h-2 w-full bg-black/40 border border-[#2fd9f4]/10 rounded-full overflow-hidden">
+          <div className="relative h-2.5 w-full bg-white/5 rounded-sm overflow-hidden border border-white/5">
             <div 
-              className="absolute top-0 left-0 h-full bg-[#2fd9f4] shadow-[0_0_15px_#2fd9f4] transition-all duration-700 ease-out" 
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-cyan-500 to-indigo-600 shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-700 ease-out" 
               style={{ width: `${progressPercentage}%` }}
             ></div>
             {/* 10% Segments */}
-            <div className="absolute inset-0 flex justify-between px-[1px]">
+            <div className="absolute inset-0 flex justify-between">
               {[...Array(11)].map((_, i) => (
-                <div key={i} className="h-full w-[1px] bg-[#0e1416]/50"></div>
+                <div key={i} className="h-full w-[1px] bg-black/40"></div>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-        <div className={`transition-all duration-500 transform ${isTransitioning ? 'opacity-0 -translate-y-4 scale-98' : 'opacity-100 translate-y-0 scale-100'}`}>
+      <main className="max-w-5xl mx-auto px-6 py-16 md:py-24 relative">
+        <div className={`transition-all duration-500 transform ${isTransitioning ? 'opacity-0 -translate-y-8 scale-95 blur-sm' : 'opacity-100 translate-y-0 scale-100 blur-0'}`}>
           
-          <div className="flex items-center gap-3 mb-8 font-mono">
-            <div className="px-3 py-1 bg-[#2fd9f4]/10 border border-[#2fd9f4]/30 rounded text-[10px] text-[#2fd9f4] font-bold uppercase tracking-widest shadow-inner">
+          <div className="flex items-center gap-4 mb-12">
+            <div className="px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-sm text-[10px] text-cyan-400 font-black uppercase tracking-[0.3em] shadow-inner">
               {currentQ.item_type}
             </div>
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-[#2fd9f4]/30 to-transparent"></div>
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-cyan-500/40 via-cyan-500/5 to-transparent"></div>
+            <div className="font-mono text-[10px] text-white/20 uppercase tracking-widest font-bold">Vector_0{currentIndex + 1}</div>
           </div>
 
-          <h1 className="text-2xl md:text-4xl font-extrabold text-white mb-16 leading-tight font-sans">
-            <span className="text-[#2fd9f4] font-mono mr-4 opacity-50 select-none">Q.</span>
+          <h1 className="text-3xl md:text-5xl font-black text-white mb-20 leading-tight font-sans tracking-tight">
+            <span className="text-cyan-400 font-mono mr-6 opacity-30 select-none text-4xl">[{String(currentIndex + 1).padStart(2, '0')}]</span>
             {currentQ.text}
           </h1>
 
-          <div className="grid gap-6">
+          <div className="grid gap-8">
             {isLikert && (
-              <div className="flex flex-col gap-8">
-                <div className="flex justify-between px-2 font-mono text-[10px] text-[#2fd9f4]/50 uppercase tracking-[0.3em] font-bold">
-                  <span>Strongly Disagree</span>
-                  <span>Strongly Agree</span>
+              <div className="flex flex-col gap-12">
+                <div className="flex justify-between px-4 font-mono text-[11px] text-cyan-400/40 uppercase tracking-[0.4em] font-bold">
+                  <span>Strongly_Disagree</span>
+                  <span>Strongly_Agree</span>
                 </div>
-                <div className="flex flex-wrap md:flex-nowrap justify-between gap-4">
+                <div className="flex flex-wrap md:flex-nowrap justify-between gap-6">
                   {[1, 2, 3, 4, 5].map((score) => (
                     <button
                       key={score}
                       onClick={() => handleResponse(score)}
-                      className="flex-1 min-w-[60px] h-20 md:h-32 bg-black/20 border border-[#2fd9f4]/10 rounded-xl flex items-center justify-center text-2xl md:text-4xl font-black font-mono text-[#2fd9f4]/40 hover:text-[#2fd9f4] hover:bg-[#2fd9f4]/10 hover:border-[#2fd9f4] hover:shadow-[0_0_30px_rgba(47,217,244,0.2)] transition-all transform active:scale-95 group relative overflow-hidden"
+                      className="flex-1 min-w-[70px] h-24 md:h-40 bg-white/5 border border-white/10 rounded-sm flex items-center justify-center text-3xl md:text-5xl font-black font-mono text-white/20 hover:text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/50 hover:shadow-[0_0_40px_rgba(6,182,212,0.2)] transition-all transform active:scale-95 group relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#2fd9f4]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <span className="relative z-10">{score}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <span className="relative z-10 transition-transform group-hover:scale-110">{score}</span>
+                      <div className="absolute bottom-2 font-mono text-[8px] opacity-0 group-hover:opacity-30 tracking-widest">RANK_{score}</div>
                     </button>
                   ))}
                 </div>
@@ -246,7 +291,7 @@ export default function Assessment() {
             )}
 
             {(isSjt || !isLikert) && parsedOptions && Array.isArray(parsedOptions) && (
-              <div className="grid gap-4">
+              <div className="grid gap-5">
                  {parsedOptions.map((opt: any, idx: number) => {
                     const val = opt.value || opt.id || String.fromCharCode(65 + idx);
                     const label = opt.label || opt.text || opt;
@@ -254,12 +299,16 @@ export default function Assessment() {
                       <button
                         key={idx}
                         onClick={() => handleResponse(val)}
-                        className="w-full text-left p-6 md:p-8 rounded-xl border border-[#2fd9f4]/10 bg-black/20 hover:bg-[#2fd9f4]/5 hover:border-[#2fd9f4]/50 hover:shadow-[0_0_20px_rgba(47,217,244,0.1)] transition-all transform active:scale-[0.99] group flex items-start relative overflow-hidden"
+                        className="w-full text-left p-8 md:p-10 rounded-sm border border-white/10 bg-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.1)] transition-all transform active:scale-[0.99] group flex items-start relative overflow-hidden"
                       >
-                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2fd9f4] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                         <span className="font-mono font-black text-[#2fd9f4]/30 group-hover:text-[#2fd9f4] mr-6 text-xl md:text-2xl transition-colors">[{val}]</span> 
-                         <span className="text-lg md:text-xl font-sans font-medium text-[#dde4e5] group-hover:text-white transition-colors pt-0.5">{label}</span>
-                         <ChevronRight className="ml-auto w-6 h-6 text-[#2fd9f4]/20 group-hover:text-[#2fd9f4] transition-all transform group-hover:translate-x-1" />
+                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                         <div className="shrink-0 w-12 h-12 rounded bg-white/5 border border-white/10 flex items-center justify-center font-mono font-black text-white/30 group-hover:text-indigo-400 mr-8 text-xl transition-all group-hover:scale-110 group-hover:border-indigo-500/30">
+                            {val}
+                         </div> 
+                         <span className="text-xl md:text-2xl font-sans font-bold text-[#bbc9cd] group-hover:text-white transition-colors pt-1 flex-1 leading-tight">
+                            {label}
+                         </span>
+                         <ChevronRight className="ml-6 w-8 h-8 text-white/10 group-hover:text-indigo-400 transition-all transform group-hover:translate-x-2 self-center" />
                       </button>
                     );
                  })}
@@ -267,28 +316,48 @@ export default function Assessment() {
             )}
 
             {!isLikert && (!parsedOptions || !Array.isArray(parsedOptions)) && (
-               <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[#2fd9f4]/20 to-[#3626ce]/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
-                  <input 
-                    type="text" 
-                    autoFocus
-                    placeholder="WAITING_FOR_INPUT_"
-                    className="relative w-full p-8 bg-black/40 border border-[#2fd9f4]/20 rounded-xl text-[#2fd9f4] placeholder-[#2fd9f4]/20 focus:outline-none focus:border-[#2fd9f4] focus:ring-0 text-xl md:text-2xl transition-all font-mono tracking-wider"
-                    onKeyDown={(e) => {
-                       if (e.key === 'Enter' && e.currentTarget.value) {
-                           handleResponse(e.currentTarget.value);
-                       }
-                    }}
-                  />
-                  <div className="mt-4 flex items-center justify-between font-mono text-[10px] text-[#2fd9f4]/40 uppercase tracking-widest px-2">
-                    <span>Press [ENTER] to confirm</span>
-                    <span className="animate-pulse">_Cursor_Active</span>
+               <div className="relative group max-w-2xl mx-auto w-full">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 rounded blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      autoFocus
+                      placeholder="WAITING_FOR_CANDIDATE_INPUT_"
+                      className="w-full p-10 bg-black/60 border border-white/10 rounded-sm text-cyan-400 placeholder-white/10 focus:outline-none focus:border-cyan-400 focus:ring-0 text-2xl md:text-3xl transition-all font-mono tracking-wider shadow-inner"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value) {
+                            handleResponse(e.currentTarget.value);
+                        }
+                      }}
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                       <Zap className="w-8 h-8 text-white/10 group-focus-within:text-cyan-400 group-focus-within:animate-pulse transition-colors" />
+                    </div>
+                  </div>
+                  <div className="mt-6 flex items-center justify-between font-mono text-[10px] text-white/20 uppercase tracking-[0.2em] px-2 font-bold">
+                    <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></div> Press [ENTER] to execute</span>
+                    <span className="animate-pulse">_Link_Stable</span>
                   </div>
                </div>
             )}
           </div>
         </div>
       </main>
+      
+      {/* Immersive Footer Decoration */}
+      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+      <div className="fixed bottom-8 left-8 hidden lg:block">
+         <div className="flex flex-col gap-2 opacity-20">
+            <div className="h-0.5 w-12 bg-white"></div>
+            <div className="h-0.5 w-8 bg-white"></div>
+            <div className="h-0.5 w-16 bg-white"></div>
+         </div>
+      </div>
+      <div className="fixed bottom-8 right-8 hidden lg:block">
+         <div className="font-mono text-[10px] text-white/10 uppercase tracking-[0.4em] font-bold rotate-90 origin-right">
+            Neural_Sync_Established
+         </div>
+      </div>
     </div>
   );
 }

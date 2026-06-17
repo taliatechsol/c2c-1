@@ -15,7 +15,12 @@ import {
   Zap,
   Target,
   Brain,
-  Layers
+  Layers,
+  Activity,
+  Cpu,
+  Database,
+  Search,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
@@ -28,14 +33,13 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('intelligence');
 
   useEffect(() => {
     async function fetchData() {
       try {
         const res = await fetch(`/api/student/${id}`);
         if (!res.ok) {
-          throw new Error("Failed to fetch dashboard data");
+          throw new Error("DASHBOARD_FETCH_ERROR");
         }
         const json = await res.json();
         setData(json);
@@ -55,7 +59,7 @@ export default function Dashboard() {
         setData({
           student: { full_name: "CYBER_NOMAD", department: "NEURAL_ENGINEERING" },
           assessments: [{
-            dimension_scores: { IQ: 88, EQ: 94, SQ: 72, AQ: 91, SpQ: 76 },
+            dimension_scores: { Technical: 88, Product: 94, Leadership: 72, Communication: 91, Adaptability: 76 },
             primary_profile: "THE_ARCHITECT",
             founder_fit: { Builder: 96 },
             development_report: {
@@ -66,7 +70,8 @@ export default function Dashboard() {
                 "INTENSIFY_STRESS_TESTING_IN_NON_LINEAR_ENVIRONMENTS."
               ]
             }
-          }]
+          }],
+          peer_scores: { Technical: 75, Product: 82, Leadership: 88, Communication: 85, Adaptability: 90 }
         });
       } finally {
         setLoading(false);
@@ -76,105 +81,116 @@ export default function Dashboard() {
   }, [id]);
 
   const assessment = data?.assessments?.[0] || {};
-  const scores = assessment.dimension_scores || { IQ: 85, EQ: 92, SQ: 78, AQ: 88, SpQ: 70 };
+  const scores = assessment.dimension_scores || { Technical: 85, Product: 92, Leadership: 78, Communication: 88, Adaptability: 70 };
   const report = assessment.development_report || {};
   const maxFitValue = assessment.founder_fit ? Math.max(...Object.values(assessment.founder_fit as Record<string, number>)) : 96;
   const founderFitType = assessment.founder_fit ? Object.keys(assessment.founder_fit)[0].toUpperCase() : "THE_BUILDER";
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center font-mono">
-        <div className="flex flex-col items-center gap-6">
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center font-mono relative overflow-hidden">
+        <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10"></div>
+        <div className="flex flex-col items-center gap-8 relative z-10">
           <div className="relative">
-            <Loader2 className="h-16 w-16 animate-spin text-[#2fd9f4] opacity-20" />
-            <Loader2 className="absolute inset-0 h-16 w-16 animate-spin text-[#2fd9f4] [animation-delay:150ms]" />
+            <div className="absolute inset-0 rounded-full border-4 border-cyan-500/10 scale-150"></div>
+            <Loader2 className="h-16 w-16 animate-spin text-cyan-400 opacity-20" />
+            <Loader2 className="absolute inset-0 h-16 w-16 animate-spin text-cyan-400 [animation-delay:150ms]" />
           </div>
-          <div className="text-[#2fd9f4] tracking-[0.4em] font-bold animate-pulse text-sm">SYNCHRONIZING_MATRIX...</div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-cyan-400 tracking-[0.6em] font-black animate-pulse text-sm uppercase">SYNCHRONIZING_MATRIX</div>
+            <div className="text-white/20 text-[10px] tracking-widest font-bold uppercase">Establishing_Secure_Datalink</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0e1416] text-[#dde4e5] selection:bg-[#2fd9f4]/30 selection:text-white pb-24">
-      
+    <div className="min-h-screen bg-[#0e1416] text-[#dde4e5] selection:bg-cyan-500/30 selection:text-white pb-24 relative overflow-hidden font-sans">
+      {/* Ambient Glows */}
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-cyan-500/5 blur-[150px] -z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[150px] -z-10 pointer-events-none"></div>
+
       {/* Top Action Bar */}
-      <nav className="sticky top-0 z-[100] bg-[#0e1416]/80 backdrop-blur-xl border-b border-[#2fd9f4]/10">
-        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#3626ce] rounded flex items-center justify-center shadow-[0_0_20px_rgba(54,38,206,0.4)]">
+      <nav className="sticky top-0 z-[100] bg-[#0e1416]/80 backdrop-blur-2xl border-b border-white/5">
+        <div className="max-w-[1500px] mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-indigo-600 rounded-sm flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.4)]">
                 <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-mono font-black tracking-tighter text-xl">C2C<span className="text-[#2fd9f4]">.OS</span></span>
+              <span className="font-mono font-black tracking-tighter text-2xl text-white">C2C<span className="text-cyan-400">.OS</span></span>
             </div>
-            <div className="hidden md:flex h-8 w-[1px] bg-[#2fd9f4]/10"></div>
-            <div className="hidden md:flex items-center gap-4 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#2fd9f4]/60">
-              <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> SECURE_LAYER_01</span>
-              <span className="w-1 h-1 bg-[#2fd9f4]/30 rounded-full"></span>
-              <span className="flex items-center gap-1.5"><Target className="w-3 h-3" /> LIVE_METRICS</span>
+            <div className="hidden lg:flex h-8 w-[1px] bg-white/10"></div>
+            <div className="hidden lg:flex items-center gap-6 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+              <span className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-sm"><Shield className="w-3 h-3 text-cyan-400" /> SECURE_LAYER_01</span>
+              <span className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-sm"><Activity className="w-3 h-3 text-green-500" /> DATA_STREAM_LIVE</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#2fd9f4]/5 hover:bg-[#2fd9f4]/10 border border-[#2fd9f4]/20 rounded font-mono text-[10px] font-bold uppercase tracking-widest text-[#2fd9f4] transition-all">
-              <Share2 className="w-3.5 h-3.5" /> Share
+          <div className="flex items-center gap-4">
+            <button className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm font-mono text-[10px] font-bold uppercase tracking-widest text-white/60 hover:text-white transition-all">
+              <Share2 className="w-4 h-4" /> Share_Profile
             </button>
             <button 
               onClick={() => window.open(`/api/export/student/${id}`, '_blank')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#3626ce]/10 hover:bg-[#3626ce]/20 border border-[#3626ce]/30 rounded font-mono text-[10px] font-bold uppercase tracking-widest text-[#c3c0ff] transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-600/30 rounded-sm font-mono text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-indigo-600/20"
             >
-              <Download className="w-3.5 h-3.5" /> Export
+              <Download className="w-4 h-4" /> Export_Dossier
             </button>
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-[#2fd9f4] to-[#3626ce] p-[1px]">
-              <div className="w-full h-full rounded bg-[#0e1416] flex items-center justify-center">
-                <User className="w-4 h-4 text-[#2fd9f4]" />
+            <div className="w-[1px] h-8 bg-white/10 mx-2"></div>
+            <div className="relative group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-indigo-600 rounded-sm blur opacity-40 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative w-10 h-10 rounded-sm bg-[#0e1416] flex items-center justify-center border border-white/20">
+                <User className="w-5 h-5 text-cyan-400" />
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-[1400px] mx-auto px-6 pt-12">
+      <main className="max-w-[1500px] mx-auto px-6 pt-12">
         
-        {/* Founder Fit Hero Section */}
-        <section className="mb-12 relative">
-          <div className="absolute -top-20 -left-20 w-96 h-96 bg-[#2fd9f4]/5 rounded-full blur-[100px] pointer-events-none"></div>
-          <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-[#3626ce]/5 rounded-full blur-[100px] pointer-events-none"></div>
-          
-          <div className="relative bg-black/40 border border-[#2fd9f4]/10 rounded-3xl p-8 md:p-16 overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-               <Layers className="w-64 h-64 text-[#2fd9f4]" />
+        {/* Profile Hero Section */}
+        <section className="mb-12">
+          <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-16 overflow-hidden">
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-cyan-500/5 to-transparent pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 opacity-5 rotate-12">
+               <Layers className="w-96 h-96 text-cyan-400" />
             </div>
             
             <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
               <div className="flex-1 text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#2fd9f4]/10 border border-[#2fd9f4]/20 rounded font-mono text-[10px] font-bold text-[#2fd9f4] uppercase tracking-[0.3em] mb-6">
-                  <Zap className="w-3 h-3" /> Cognitive_Archetype_Detected
+                <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-sm font-mono text-[10px] font-bold text-cyan-400 uppercase tracking-[0.3em] mb-8">
+                  <Activity className="w-3.5 h-3.5" /> Cognitive_Archetype_Unlocked
                 </div>
-                <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-4 leading-none">
-                  <span className="block text-white opacity-40 text-2xl md:text-4xl font-mono mb-2 uppercase tracking-widest">THE_LEGEND:</span>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2fd9f4] via-[#8aebff] to-[#3626ce] drop-shadow-[0_0_30px_rgba(47,217,244,0.3)]">
+                <h1 className="text-6xl md:text-9xl font-black tracking-tighter mb-6 leading-[0.8]">
+                  <span className="block text-white/20 text-3xl md:text-4xl font-mono mb-4 uppercase tracking-[0.2em]">STU_STATUS: LEGEND</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-indigo-600 drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">
                     {founderFitType}
                   </span>
                 </h1>
-                <p className="max-w-xl text-lg md:text-xl text-[#bbc9cd] font-medium leading-relaxed font-sans mt-8">
+                <p className="max-w-2xl text-lg md:text-2xl text-[#bbc9cd] font-medium leading-relaxed font-sans mt-10 border-l-4 border-cyan-500/30 pl-8">
                   {report.profile_summary}
                 </p>
               </div>
 
               <div className="shrink-0 relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#2fd9f4] to-[#3626ce] rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-full border border-[#2fd9f4]/20 bg-black/40 flex items-center justify-center p-8">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-indigo-600 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border border-white/10 bg-black/60 flex items-center justify-center p-12 backdrop-blur-2xl">
                   <div className="text-center">
-                    <span className="block font-mono text-[10px] text-[#2fd9f4]/60 uppercase tracking-[0.2em] mb-1 font-bold">Fit_Index</span>
-                    <span className="block text-6xl md:text-8xl font-black text-white tracking-tighter">
-                      {maxFitValue}<span className="text-2xl md:text-3xl text-[#2fd9f4]">%</span>
+                    <span className="block font-mono text-xs text-cyan-400/60 uppercase tracking-[0.4em] mb-2 font-black">FIT_INDEX</span>
+                    <span className="block text-8xl md:text-9xl font-black text-white tracking-tighter">
+                      {maxFitValue}<span className="text-3xl md:text-4xl text-cyan-400 opacity-50">%</span>
                     </span>
                   </div>
-                  {/* Rotating decorative rings */}
-                  <div className="absolute inset-0 border-2 border-dashed border-[#2fd9f4]/10 rounded-full animate-[spin_20s_linear_infinite]"></div>
-                  <div className="absolute inset-4 border border-[#3626ce]/20 rounded-full animate-[spin_15s_linear_infinite_reverse]"></div>
+                  {/* Rotating decorative elements */}
+                  <svg className="absolute inset-0 w-full h-full animate-[spin_30s_linear_infinite]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="1 5" className="text-cyan-400/20" />
+                  </svg>
+                  <svg className="absolute inset-4 w-[calc(100%-32px)] h-[calc(100%-32px)] animate-[spin_20s_linear_infinite_reverse]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="10 40" className="text-indigo-500/20" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -183,38 +199,44 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Intelligence Matrix - Radar Chart */}
+          {/* Intelligence Matrix - Radar Chart Area */}
           <div className="lg:col-span-7">
-            <div className="bg-black/20 border border-[#2fd9f4]/10 rounded-3xl p-8 h-full relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#2fd9f4]/40 to-transparent"></div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 md:p-12 h-full relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full"></div>
               
-              <div className="flex justify-between items-start mb-12">
+              <div className="flex justify-between items-start mb-16">
                 <div>
-                  <h2 className="text-2xl font-black text-white font-mono uppercase tracking-widest flex items-center gap-3">
-                    <Brain className="w-6 h-6 text-[#2fd9f4]" /> Intelligence_Matrix
+                  <h2 className="text-3xl font-black text-white font-mono uppercase tracking-tighter flex items-center gap-4">
+                    <Brain className="w-8 h-8 text-cyan-400" /> Intelligence_Matrix
                   </h2>
-                  <p className="text-[10px] text-[#2fd9f4]/50 uppercase tracking-[0.3em] font-bold mt-2">Neural_Capacity_Benchmarks</p>
+                  <p className="text-[10px] text-cyan-400/50 uppercase tracking-[0.4em] font-black mt-3">360°_NEURAL_CAPACITY_BENCHMARKS</p>
                 </div>
-                <div className="px-3 py-1 bg-black/40 border border-[#2fd9f4]/10 rounded font-mono text-[10px] text-[#2fd9f4]/40 uppercase tracking-widest">
-                  Live_Data_Feed
+                <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-black/40 border border-white/10 rounded-sm font-mono text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                  <Database className="w-3.5 h-3.5" /> ARCHIVE_STABLE_001
                 </div>
               </div>
 
-              <div className="flex flex-col xl:flex-row items-center gap-12">
-                <div className="w-full max-w-[400px] aspect-square relative">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-16 items-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-400/5 blur-3xl rounded-full scale-75"></div>
                   <GrowthRadar data={scores} peerData={data?.peer_scores} />
                 </div>
                 
-                <div className="flex-1 grid grid-cols-1 gap-4 w-full">
+                <div className="space-y-4">
+                  <h4 className="font-mono text-[10px] text-white/20 uppercase tracking-[0.4em] font-black mb-6">Vector_Decomposition</h4>
                   {Object.entries(scores).map(([key, value]) => (
-                    <div key={key} className="bg-black/40 border border-[#2fd9f4]/5 p-5 rounded-2xl hover:border-[#2fd9f4]/30 transition-all group">
-                      <div className="flex justify-between items-end mb-3">
-                        <span className="font-mono text-[10px] font-bold text-[#2fd9f4]/60 uppercase tracking-[0.2em] group-hover:text-[#2fd9f4] transition-colors">{key}</span>
-                        <span className="text-2xl font-black text-white">{value as number}</span>
+                    <div key={key} className="bg-white/5 border border-white/5 p-6 rounded-xl group hover:border-cyan-500/30 transition-all">
+                      <div className="flex justify-between items-end mb-4">
+                        <span className="font-mono text-[11px] font-black text-white/40 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">{key}</span>
+                        <div className="flex items-baseline gap-1">
+                           <span className="text-3xl font-black text-white tracking-tighter">{value as number}</span>
+                           <span className="text-[10px] font-bold text-white/20 uppercase">PTS</span>
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden p-[1px]">
+                      <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-[#2fd9f4] to-[#3626ce] rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(47,217,244,0.5)]" 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(6,182,212,0.4)]" 
                           style={{ width: `${value}%` }}
                         ></div>
                       </div>
@@ -225,88 +247,112 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Development Report - Targeted Directives & Match Alerts */}
+          {/* Development Report - High Tech Data Cards */}
           <div className="lg:col-span-5 flex flex-col gap-8">
-            <div className="bg-black/20 border border-[#2fd9f4]/10 rounded-3xl p-8 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#2fd9f4] to-transparent"></div>
+            {/* Targeted Directives */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-transparent"></div>
               
-              <div className="mb-10">
-                <h2 className="text-2xl font-black text-white font-mono uppercase tracking-widest flex items-center gap-3">
-                  <TrendingUp className="w-6 h-6 text-[#2fd9f4]" /> Targeted_Directives
+              <div className="mb-12">
+                <h2 className="text-2xl font-black text-white font-mono uppercase tracking-tighter flex items-center gap-4">
+                  <TrendingUp className="w-7 h-7 text-indigo-400" /> Optimization_Protocols
                 </h2>
-                <p className="text-[10px] text-[#2fd9f4]/50 uppercase tracking-[0.3em] font-bold mt-2">Optimization_Protocols_v2.0</p>
+                <p className="text-[10px] text-indigo-400/50 uppercase tracking-[0.4em] font-black mt-3">DIRECTIVE_SET_v2.0_SYNCED</p>
               </div>
 
               <div className="space-y-4">
                 {report.actionable_feedback.map((directive: string, i: number) => (
-                  <div key={i} className="group relative">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#2fd9f4]/20 to-[#3626ce]/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                    <div className="relative bg-black/60 border border-[#2fd9f4]/10 p-6 rounded-2xl flex items-start gap-6 backdrop-blur-sm transition-all group-hover:bg-black/40 group-hover:translate-x-1">
-                      <div className="shrink-0 w-10 h-10 rounded bg-[#2fd9f4]/5 border border-[#2fd9f4]/20 flex items-center justify-center font-mono text-[#2fd9f4] font-bold">
+                  <div key={i} className="group/card relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-indigo-600/20 rounded-xl blur opacity-0 group-hover/card:opacity-100 transition duration-500"></div>
+                    <div className="relative bg-black/60 border border-white/5 p-6 rounded-xl flex items-start gap-6 backdrop-blur-md transition-all group-hover/card:bg-black/40 group-hover/card:translate-x-2">
+                      <div className="shrink-0 w-12 h-12 rounded-sm bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-mono text-indigo-400 font-black text-lg">
                         {String(i + 1).padStart(2, '0')}
                       </div>
                       <div className="flex-1">
-                        <p className="text-[#dde4e5] font-sans leading-relaxed text-sm md:text-base group-hover:text-white transition-colors">
+                        <p className="text-[#bbc9cd] font-sans font-medium leading-relaxed text-sm md:text-base group-hover/card:text-white transition-colors uppercase tracking-tight">
                           {directive}
                         </p>
                       </div>
-                      <ChevronRight className="shrink-0 w-5 h-5 text-[#2fd9f4]/20 group-hover:text-[#2fd9f4] transition-colors self-center" />
+                      <ChevronRight className="shrink-0 w-6 h-6 text-white/5 group-hover/card:text-indigo-400 transition-all self-center transform group-hover/card:translate-x-1" />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-12 p-6 bg-[#3626ce]/5 border border-[#3626ce]/20 rounded-2xl text-center">
-                 <h4 className="text-white font-mono font-bold uppercase tracking-widest text-xs mb-3">Professional_Legend_Protocol</h4>
-                 <p className="text-[10px] text-[#c3c0ff]/60 uppercase tracking-widest mb-6 leading-relaxed">Unlock advanced career mapping via legacy interface</p>
-                 <Link 
-                   href="/index.html" 
-                   className="inline-flex items-center gap-2 px-6 py-3 bg-[#3626ce] hover:bg-[#3626ce]/80 text-white rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(54,38,206,0.3)] hover:shadow-[0_0_30px_rgba(54,38,206,0.5)]"
-                 >
-                   Access_Legacy_System <ExternalLink className="w-3.5 h-3.5" />
-                 </Link>
+              <div className="mt-12 p-8 bg-indigo-600/5 border border-indigo-600/20 rounded-xl text-center relative overflow-hidden group/cta">
+                 <div className="absolute inset-0 bg-cyber-grid bg-[length:20px_20px] opacity-10"></div>
+                 <div className="relative z-10">
+                    <h4 className="text-white font-mono font-black uppercase tracking-[0.3em] text-xs mb-4">Legend_Network_Access</h4>
+                    <p className="text-[11px] text-[#c3c0ff]/60 uppercase tracking-widest mb-8 leading-relaxed max-w-[200px] mx-auto font-bold">Bridge to verified high-impact opportunities</p>
+                    <Link 
+                      href="/onboard" 
+                      className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm font-mono text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_40px_rgba(79,70,229,0.5)]"
+                    >
+                      Initialize_Career_Sync <ExternalLink className="w-4 h-4" />
+                    </Link>
+                 </div>
               </div>
             </div>
 
-            {/* Match Alerts */}
+            {/* Match Alerts - Market Scout Data Cards */}
             {alerts && alerts.length > 0 && (
-              <div className="bg-black/20 border border-[#3626ce]/10 rounded-3xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#3626ce] to-transparent"></div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-transparent"></div>
                 
-                <div className="mb-10">
-                  <h2 className="text-2xl font-black text-white font-mono uppercase tracking-widest flex items-center gap-3">
-                    <Target className="w-6 h-6 text-[#3626ce]" /> Match_Alerts
+                <div className="mb-12">
+                  <h2 className="text-2xl font-black text-white font-mono uppercase tracking-tighter flex items-center gap-4">
+                    <Target className="w-7 h-7 text-cyan-400" /> Market_Scout_Sync
                   </h2>
-                  <p className="text-[10px] text-[#3626ce]/50 uppercase tracking-[0.3em] font-bold mt-2">Market_Scout_Sync</p>
+                  <p className="text-[10px] text-cyan-400/50 uppercase tracking-[0.4em] font-black mt-3">LIVE_OPPORTUNITY_FEED</p>
                 </div>
 
                 <div className="space-y-4">
                   {alerts.slice(0, 5).map((alert: any, i: number) => (
-                    <a key={i} href={alert.lead_url} target="_blank" rel="noopener noreferrer" className="block group relative">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#2fd9f4]/20 to-[#3626ce]/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                      <div className="relative bg-black/60 border border-[#3626ce]/10 p-5 rounded-2xl flex flex-col gap-2 backdrop-blur-sm transition-all group-hover:bg-black/40 group-hover:translate-x-1">
-                        <div className="flex justify-between items-start gap-4">
-                          <h3 className="text-[#dde4e5] font-sans font-bold group-hover:text-white transition-colors line-clamp-1">
-                            {alert.market_leads?.name || 'Job Opportunity'}
+                    <a key={i} href={alert.lead_url} target="_blank" rel="noopener noreferrer" className="block group/alert relative">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400/20 to-indigo-600/20 rounded-xl blur opacity-0 group-hover/alert:opacity-100 transition duration-500"></div>
+                      <div className="relative bg-black/60 border border-white/5 p-6 rounded-xl flex flex-col gap-4 backdrop-blur-md transition-all group-hover/alert:bg-black/40 group-hover/alert:translate-x-2">
+                        <div className="flex justify-between items-start gap-6">
+                          <h3 className="text-[#bbc9cd] font-sans font-black group-hover/alert:text-white transition-colors line-clamp-1 uppercase tracking-tight text-lg">
+                            {alert.market_leads?.name || 'High Impact Role'}
                           </h3>
-                          <span className="shrink-0 px-2 py-0.5 bg-[#3626ce]/10 border border-[#3626ce]/20 rounded font-mono text-[10px] font-bold text-[#c3c0ff]">
-                            {alert.score || alert.market_leads?.ai_score || 0}%
-                          </span>
+                          <div className="shrink-0 flex flex-col items-end">
+                             <div className="font-mono text-[9px] text-cyan-400/40 font-black uppercase tracking-widest mb-1">MATCH</div>
+                             <span className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-sm font-mono text-xs font-black text-cyan-400">
+                               {alert.score || alert.market_leads?.ai_score || 0}%
+                             </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-mono text-[#c3c0ff]/60 uppercase tracking-widest mt-1">
-                          <span className="flex items-center gap-1 truncate"><Trophy className="w-3 h-3 shrink-0" /> <span className="truncate">{alert.market_leads?.company || 'Unknown'}</span></span>
-                          <span className="flex items-center gap-1 text-[#2fd9f4] shrink-0 ml-auto"><ExternalLink className="w-3 h-3" /> View</span>
+                        <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/5">
+                          <span className="flex items-center gap-2 font-mono text-[10px] text-white/30 uppercase tracking-widest font-bold">
+                             <Database className="w-3.5 h-3.5" /> {alert.market_leads?.company || 'Confidential'}
+                          </span>
+                          <span className="flex items-center gap-2 text-[10px] font-black font-mono text-cyan-400 uppercase tracking-widest group-hover/alert:translate-x-1 transition-transform">
+                             Execute_Link <ExternalLink className="w-3.5 h-3.5" />
+                          </span>
                         </div>
                       </div>
                     </a>
                   ))}
                 </div>
+                
+                {alerts.length > 5 && (
+                  <button className="w-full mt-6 py-4 bg-white/5 border border-white/10 rounded-sm font-mono text-[10px] font-black text-white/40 uppercase tracking-[0.3em] hover:bg-white/10 hover:text-white transition-all">
+                    Load_More_Matches_({alerts.length - 5})
+                  </button>
+                )}
               </div>
             )}
           </div>
 
         </div>
       </main>
+      
+      {/* Decorative Fixed Elements */}
+      <div className="fixed top-1/2 left-4 -translate-y-1/2 hidden 2xl:flex flex-col gap-8 opacity-10">
+         <div className="font-mono text-[10px] text-white uppercase tracking-[0.5em] font-black -rotate-90 origin-left">MATRIX_SYNCHRONIZED</div>
+         <div className="h-32 w-[1px] bg-gradient-to-b from-transparent via-white to-transparent mx-auto"></div>
+         <div className="font-mono text-[10px] text-white uppercase tracking-[0.5em] font-black -rotate-90 origin-left">EST_2024.C2C</div>
+      </div>
     </div>
   );
 }
