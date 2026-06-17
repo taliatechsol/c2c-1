@@ -3,6 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { 
+  UserPlus, 
+  Mail, 
+  Calendar, 
+  BookOpen, 
+  ArrowRight, 
+  Loader2, 
+  AlertCircle,
+  Activity,
+  Shield,
+  Zap,
+  Globe
+} from 'lucide-react';
+import Link from 'next/link';
 
 export default function Onboard() {
   const router = useRouter();
@@ -90,96 +104,139 @@ export default function Onboard() {
 
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center font-mono relative overflow-hidden">
+        <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10"></div>
+        <div className="flex flex-col items-center gap-6 relative z-10">
+          <Loader2 className="h-12 w-12 animate-spin text-cyan-400" />
+          <p className="text-cyan-400 text-xs tracking-[0.3em] font-black uppercase animate-pulse">Syncing_Auth_State...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Register as a Student
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Full Name
-              </label>
-              <input
-                id="full_name"
-                name="full_name"
-                type="text"
-                required
-                value={formData.full_name}
-                onChange={handleChange}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email Address (Institution Domain)
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                readOnly={!!authId}
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm opacity-75"
-              />
-            </div>
-            <div>
-              <label htmlFor="graduation_year" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Graduation Year
-              </label>
-              <input
-                id="graduation_year"
-                name="graduation_year"
-                type="number"
-                required
-                value={formData.graduation_year}
-                onChange={handleChange}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Department
-              </label>
-              <input
-                id="department"
-                name="department"
-                type="text"
-                required
-                value={formData.department}
-                onChange={handleChange}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#0e1416] text-[#dde4e5] selection:bg-cyan-500/30 py-20 px-6 relative overflow-hidden">
+      {/* Ambient Background Elements */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] -z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] -z-10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-cyber-grid bg-[length:40px_40px] opacity-[0.03] -z-10"></div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {submitting ? 'Registering...' : 'Register'}
-            </button>
+      <div className="max-w-xl mx-auto relative z-10">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full font-mono text-[10px] font-bold text-indigo-400 uppercase tracking-[0.3em] mb-6">
+            <UserPlus className="w-3.5 h-3.5" /> Protocol_Initialization
           </div>
-        </form>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white mb-4 uppercase">
+            Create your <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">Legend_Profile</span>
+          </h1>
+          <p className="text-[#bbc9cd] font-medium tracking-tight">Synchronize your academic credentials with our neural evaluation matrix.</p>
+        </div>
+
+        <div className="bg-[#1a2326]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          
+          <form className="space-y-8" onSubmit={handleSubmit}>
+            {error && (
+              <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-mono animate-in fade-in slide-in-from-top-1">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-widest text-cyan-400/70 ml-1 font-black">Candidate_Full_Name</label>
+                <div className="relative group">
+                  <input
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    className="block w-full px-5 py-4 bg-[#0e1416]/50 border border-white/10 rounded-xl text-white placeholder:text-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 focus:border-cyan-400/50 transition-all font-mono text-sm"
+                    placeholder="Enter your legal name"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono uppercase tracking-widest text-cyan-400/70 ml-1 font-black">Institutional_Email</label>
+                <div className="relative group">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                     <span className="text-[9px] font-mono text-green-500/60 font-bold">VERIFIED</span>
+                  </div>
+                  <input
+                    name="email"
+                    type="email"
+                    readOnly
+                    value={formData.email}
+                    className="block w-full px-5 py-4 bg-[#0e1416]/30 border border-white/5 rounded-xl text-white/40 cursor-not-allowed font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono uppercase tracking-widest text-cyan-400/70 ml-1 font-black">Graduation_Year</label>
+                  <input
+                    name="graduation_year"
+                    type="number"
+                    required
+                    value={formData.graduation_year}
+                    onChange={handleChange}
+                    className="block w-full px-5 py-4 bg-[#0e1416]/50 border border-white/10 rounded-xl text-white placeholder:text-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 focus:border-cyan-400/50 transition-all font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono uppercase tracking-widest text-cyan-400/70 ml-1 font-black">Academic_Dept</label>
+                  <input
+                    name="department"
+                    type="text"
+                    required
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="block w-full px-5 py-4 bg-[#0e1416]/50 border border-white/10 rounded-xl text-white placeholder:text-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 focus:border-cyan-400/50 transition-all font-mono text-sm"
+                    placeholder="e.g. CS, AI, Mech"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full relative group overflow-hidden bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-black py-5 rounded-xl transition-all shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <div className="flex items-center justify-center gap-3 tracking-[0.2em]">
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      SYNCHRONIZING...
+                    </>
+                  ) : (
+                    <>
+                      INITIALIZE_ASSESSMENT
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-2" />
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-12 flex items-center justify-center gap-8 opacity-20 grayscale">
+             <Globe className="w-6 h-6" />
+             <Shield className="w-6 h-6" />
+             <Zap className="w-6 h-6" />
+             <Activity className="w-6 h-6" />
+          </div>
+        </div>
+
+        <p className="mt-8 text-center text-[10px] font-mono text-white/20 uppercase tracking-[0.3em] font-bold">
+          Encrypted Connection // Secure Data Sovereignty
+        </p>
       </div>
     </div>
   );
