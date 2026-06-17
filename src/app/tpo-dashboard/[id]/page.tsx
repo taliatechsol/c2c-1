@@ -45,6 +45,7 @@ export default function TPODashboard() {
   const { user, loading: authLoading } = useRequireAuth();
   const [data, setData] = useState<TPOCohortData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [interventionCollapsed, setInterventionCollapsed] = useState(false);
 
   useEffect(() => {
@@ -61,22 +62,33 @@ export default function TPODashboard() {
         }
       } catch (err: unknown) {
         console.error("Fetch error:", err);
-        // Mock data fallback matching the UI export
-        setData({
-          averages: { IQ: 78.5, EQ: 84.2, SQ: 62.1, AQ: 42.0, SpQ: 75.3 },
-          founder_distribution: { Builder: 33, Leader: 26, Rainmaker: 15, Anchor: 26 },
-          support_needs: [
-            "Tier-3 Batch: Computer Science (Section D) - Low AQ Score detected across 42 students.",
-            "High-Risk Individual: Vikram S. (ID: 9822) - Matching 94% with dropout behavioral patterns.",
-            "Placement Mismatch: Fintech Stream - Employer requirements for 'Leader' profiles exceeding cohort supply by 12%."
-          ]
-        });
+        setError("Failed to synchronize institutional cohort metrics from the database node.");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
   }, [id, authLoading]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center p-6 font-mono text-center">
+        <div className="bg-black/60 border border-[#ffb4ab]/30 p-8 rounded-xl max-w-md">
+          <ShieldAlert className="w-12 h-12 text-[#ffb4ab] mx-auto mb-4 animate-pulse" />
+          <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-[0.2em]">Telemetry Connection Failed</h2>
+          <p className="text-[#bbc9cd] text-sm mb-6 leading-relaxed">
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-[#93000a]/20 border border-[#ffb4ab]/40 text-[#ffb4ab] text-xs font-bold uppercase tracking-widest hover:bg-[#93000a]/40 active:scale-95 transition-all"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || loading || !data) {
     return <LoadingScreen title="Syncing Cohort Telemetry" subtitle="Establishing connection to institutional node..." />;

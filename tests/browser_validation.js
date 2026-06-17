@@ -236,7 +236,7 @@ async function runTests() {
     {
       name: 'Employer Portal',
       path: '/employer',
-      requireAuth: false,
+      requireAuth: true,
       expectedText: 'Recruiter Console'
     },
     {

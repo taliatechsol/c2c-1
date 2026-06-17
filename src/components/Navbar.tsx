@@ -38,7 +38,7 @@ export default function Navbar() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="bg-[#0e1416]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
+    <nav role="navigation" aria-label="Main Navigation" className="bg-[#0e1416]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
@@ -86,6 +86,8 @@ export default function Navbar() {
           <div className="flex items-center sm:hidden">
             <button
               onClick={toggleMenu}
+              aria-label="Toggle main menu"
+              aria-expanded={isMenuOpen}
               className="inline-flex items-center justify-center p-2 rounded-md text-[#dde4e5]/60 hover:text-cyan-400 hover:bg-white/5 transition-colors focus:outline-none"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

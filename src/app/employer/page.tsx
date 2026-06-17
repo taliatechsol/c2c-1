@@ -17,14 +17,11 @@ import {
   Plus,
   CheckCircle
 } from "lucide-react";
-
-
-
-
-
-
+import { useRequireAuth } from "@/hooks/useAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function EmployerPage() {
+  const { user, loading: authLoading } = useRequireAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -32,8 +29,10 @@ export default function EmployerPage() {
   const [strictFounderFit, setStrictFounderFit] = useState(false);
   const [minAQ, setMinAQ] = useState(82);
   const [minEQ, setMinEQ] = useState(75);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     const fetchCandidates = async () => {
       setIsLoading(true);
       try {
@@ -66,7 +65,7 @@ export default function EmployerPage() {
       }
     };
     fetchCandidates();
-  }, []);
+  }, [authLoading]);
 
   const filteredCandidates = candidates.filter(c => {
     if (c.aq < minAQ) return false;
@@ -84,14 +83,27 @@ export default function EmployerPage() {
     }
   };
 
+  if (authLoading || isLoading) {
+    return <LoadingScreen title="Syncing Recruiter Console" subtitle="Authenticating credentials and loading matches..." />;
+  }
+
   return (
     <div className={`bg-[#0e1416] text-[#dde4e5] overflow-hidden font-sans`}>
 
 
-      <div className="flex h-screen ">
+      <div className="flex h-screen relative">
         {/* Left Sidebar: Filters */}
-        <aside className="hidden lg:flex flex-col w-80 bg-[#1a2122]/90 backdrop-blur-2xl border-r border-white/5 overflow-y-auto shrink-0">
-          <div className="p-6 space-y-12">
+        <aside className={`
+          fixed inset-y-0 left-0 z-50 flex flex-col w-80 bg-[#1a2122]/95 backdrop-blur-2xl border-r border-white/10 overflow-y-auto shrink-0 transition-transform duration-300 lg:static lg:translate-x-0
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          {/* Close button for mobile */}
+          <div className="flex lg:hidden justify-end p-4 absolute top-2 right-2">
+            <button onClick={() => setMobileMenuOpen(false)} className="text-[#bbc9cd] hover:text-white p-1.5 bg-[#1a2122] rounded-md border border-white/10">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-6 space-y-12 mt-8 lg:mt-0">
             <div>
               <h2 className="text-2xl font-semibold text-[#8aebff] mb-1">Recruiter Console</h2>
               <p className={`text-[12px] font-bold tracking-[0.1em] text-[#bbc9cd] opacity-70 font-mono`}>ENTERPRISE TIER</p>
@@ -168,12 +180,24 @@ export default function EmployerPage() {
           </div>
         </aside>
 
+        {/* Mobile backdrop */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
+        )}
+
         {/* Main Content Area */}
         <main className="flex-1 relative overflow-hidden bg-[#0e1416]">
           <div className="relative z-10 h-full p-6 overflow-y-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
+                  <button 
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="lg:hidden p-2 bg-[#1a2122] rounded-md border border-white/10 text-[#8aebff]"
+                    aria-label="Toggle filters menu"
+                  >
+                    <List className="w-5 h-5" />
+                  </button>
                   <Users className="text-[#8aebff] w-6 h-6" />
                   <h1 className="text-3xl font-extrabold text-[#dde4e5] tracking-tight leading-none">Talent Pool</h1>
                 </div>
@@ -196,88 +220,98 @@ export default function EmployerPage() {
             </div>
 
             {/* Candidate Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-12">
-              {filteredCandidates.map((candidate) => (
-                <div 
-                  key={candidate.id} 
-                  className="bg-[#0f172a]/40 backdrop-blur-md rounded-xl overflow-hidden flex flex-col group border border-white/5 hover:border-[#8aebff]/40 transition-all duration-300 hover:shadow-[0_0_20px_rgba(47,217,244,0.1)]"
-                >
-                  <div className="p-6 space-y-6 flex-1">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-4">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-lg border border-[#8aebff]/30 overflow-hidden shrink-0">
-                            <img alt={candidate.name} className="w-full h-full object-cover" src={candidate.image}/>
+            {filteredCandidates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 px-4 border border-dashed border-white/10 rounded-2xl bg-[#1a2122]/30 backdrop-blur-md text-center max-w-lg mx-auto mt-8">
+                <Users className="w-12 h-12 text-[#8aebff]/50 mb-4 animate-pulse" />
+                <h3 className="text-xl font-bold text-white mb-2">No Candidates Found</h3>
+                <p className="text-sm text-[#bbc9cd]">
+                  No elite talents match the current filter criteria. Adjust the sliders or toggle strict founder fit.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-12">
+                {filteredCandidates.map((candidate) => (
+                  <div 
+                    key={candidate.id} 
+                    className="bg-[#0f172a]/40 backdrop-blur-md rounded-xl overflow-hidden flex flex-col group border border-white/5 hover:border-[#8aebff]/40 transition-all duration-300 hover:shadow-[0_0_20px_rgba(47,217,244,0.1)]"
+                  >
+                    <div className="p-6 space-y-6 flex-1">
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-4">
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-lg border border-[#8aebff]/30 overflow-hidden shrink-0">
+                              <img alt={candidate.name} className="w-full h-full object-cover" src={candidate.image}/>
+                            </div>
+                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 border-2 border-[#0e1416] rounded-full ${candidate.status === 'online' ? 'bg-green-500' : 'bg-amber-500'}`}></div>
                           </div>
-                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 border-2 border-[#0e1416] rounded-full ${candidate.status === 'online' ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                          <div>
+                            <h3 className="text-xl font-bold text-[#dde4e5] leading-tight group-hover:text-[#8aebff] transition-colors">{candidate.name}</h3>
+                            <p className={`text-[12px] text-[#bbc9cd] font-medium uppercase tracking-[0.05em] font-mono`}>{candidate.role} • {candidate.cohort}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-[#dde4e5] leading-tight group-hover:text-[#8aebff] transition-colors">{candidate.name}</h3>
-                          <p className={`text-[12px] text-[#bbc9cd] font-medium uppercase tracking-[0.05em] font-mono`}>{candidate.role} • {candidate.cohort}</p>
+                        <div className="text-right">
+                          <div className={`text-[10px] font-medium tracking-[0.05em] text-[#8aebff]/70 mb-0.5 font-mono`}>MATCH</div>
+                          <div className="text-2xl font-bold text-[#8aebff]">{candidate.match}%</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-[10px] font-medium tracking-[0.05em] text-[#8aebff]/70 mb-0.5 font-mono`}>MATCH</div>
-                        <div className="text-2xl font-bold text-[#8aebff]">{candidate.match}%</div>
+
+                      {/* Mini Radar Chart (SVG) */}
+                      <div className="flex items-center justify-between gap-4 py-2 border-y border-white/5">
+                        <div className="w-24 h-24 shrink-0 relative">
+                          <svg className="w-full h-full" viewBox="0 0 100 100">
+                            <polygon className="stroke-white/10 stroke-[0.5] fill-none" points="50,5 93,30 93,80 50,105 7,80 7,30" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
+                            <polygon className="stroke-white/10 stroke-[0.5] fill-none" points="50,25 72,38 72,63 50,75 28,63 28,38" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
+                            <polygon className="fill-[#2fd9f4]/30 stroke-[#2fd9f4] stroke-[1.5]" points="50,15 88,35 70,85 40,90 20,40" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className={`text-[8px] font-medium tracking-[0.05em] text-[#8aebff]/40 font-mono`}>CORE</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
+                          <div className="flex flex-col">
+                            <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>TFI (TECH FIT)</span>
+                            <span className="text-xs font-bold text-[#dde4e5]">{candidate.tech_fit_index?.toFixed(1)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>SFI (SALES FIT)</span>
+                            <span className="text-xs font-bold text-[#dde4e5]">{candidate.sales_fit_index?.toFixed(1)}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>AQ</span>
+                            <span className="text-xs font-bold text-[#dde4e5]">{candidate.aq}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>EQ</span>
+                            <span className="text-xs font-bold text-[#dde4e5]">{candidate.eq}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className={`text-[10px] font-bold tracking-[0.1em] text-[#bbc9cd] font-mono`}>TOP SKILLS</span>
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills.map((skill: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 bg-[#3626ce]/20 text-[#c3c0ff] text-[10px] rounded border border-[#c3c0ff]/20">{skill}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-
-                    {/* Mini Radar Chart (SVG) */}
-                    <div className="flex items-center justify-between gap-4 py-2 border-y border-white/5">
-                      <div className="w-24 h-24 shrink-0 relative">
-                        <svg className="w-full h-full" viewBox="0 0 100 100">
-                          <polygon className="stroke-white/10 stroke-[0.5] fill-none" points="50,5 93,30 93,80 50,105 7,80 7,30" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
-                          <polygon className="stroke-white/10 stroke-[0.5] fill-none" points="50,25 72,38 72,63 50,75 28,63 28,38" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
-                          <polygon className="fill-[#2fd9f4]/30 stroke-[#2fd9f4] stroke-[1.5]" points="50,15 88,35 70,85 40,90 20,40" transform="scale(0.8) translate(12.5, 12.5)"></polygon>
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className={`text-[8px] font-medium tracking-[0.05em] text-[#8aebff]/40 font-mono`}>CORE</span>
-                        </div>
-                      </div>
-                      <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
-                        <div className="flex flex-col">
-                          <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>TFI (TECH FIT)</span>
-                          <span className="text-xs font-bold text-[#dde4e5]">{candidate.tech_fit_index?.toFixed(1)}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>SFI (SALES FIT)</span>
-                          <span className="text-xs font-bold text-[#dde4e5]">{candidate.sales_fit_index?.toFixed(1)}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>AQ</span>
-                          <span className="text-xs font-bold text-[#dde4e5]">{candidate.aq}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-[9px] text-[#bbc9cd] font-bold tracking-[0.1em] font-mono`}>EQ</span>
-                          <span className="text-xs font-bold text-[#dde4e5]">{candidate.eq}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className={`text-[10px] font-bold tracking-[0.1em] text-[#bbc9cd] font-mono`}>TOP SKILLS</span>
-                      <div className="flex flex-wrap gap-1">
-                        {candidate.skills.map((skill: string, idx: number) => (
-                          <span key={idx} className="px-2 py-0.5 bg-[#3626ce]/20 text-[#c3c0ff] text-[10px] rounded border border-[#c3c0ff]/20">{skill}</span>
-                        ))}
-                      </div>
+                    <div className="p-4 bg-white/5 border-t border-white/5 flex gap-2">
+                      <button 
+                        className="flex-1 bg-[#8aebff] text-[#00363e] text-[11px] font-bold tracking-[0.1em] py-2 rounded hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                        onClick={() => togglePanel(candidate)}
+                      >
+                        <FileText className="w-3 h-3" />
+                        VIEW DOSSIER
+                      </button>
+                      <button className="w-10 h-9 flex items-center justify-center rounded border border-white/10 hover:bg-white/10 text-[#bbc9cd] transition-colors">
+                        <Bookmark className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="p-4 bg-white/5 border-t border-white/5 flex gap-2">
-                    <button 
-                      className="flex-1 bg-[#8aebff] text-[#00363e] text-[11px] font-bold tracking-[0.1em] py-2 rounded hover:brightness-110 transition-all flex items-center justify-center gap-2"
-                      onClick={() => togglePanel(candidate)}
-                    >
-                      <FileText className="w-3 h-3" />
-                      VIEW DOSSIER
-                    </button>
-                    <button className="w-10 h-9 flex items-center justify-center rounded border border-white/10 hover:bg-white/10 text-[#bbc9cd] transition-colors">
-                      <Bookmark className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Detail View: Sliding Right Panel */}

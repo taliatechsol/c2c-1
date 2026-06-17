@@ -2,14 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { 
-  Trophy, 
   TrendingUp, 
-  User, 
   ExternalLink, 
   AlertCircle, 
   Loader2, 
-  Share2, 
-  Download, 
   ChevronRight,
   Shield,
   Zap,
@@ -75,24 +71,7 @@ export default function Dashboard() {
         }
       } catch (err: unknown) {
         console.error(err);
-        // Fallback for demo purposes
-        setData({
-          student: { full_name: "CYBER_NOMAD", department: "NEURAL_ENGINEERING" },
-          assessments: [{
-            dimension_scores: { Technical: 88, Product: 94, Leadership: 72, Communication: 91, Adaptability: 76 },
-            primary_profile: "THE_ARCHITECT",
-            founder_fit: { Builder: 96 },
-            development_report: {
-              profile_summary: "EXCEPTIONAL_ADAPTIVE_CAPACITY. ANALYTICAL_RIGOR_MATCHED_BY_STRATEGIC_EMPATHY. IDEAL_FOR_HIGH_STAKES_ORCHESTRATION.",
-              actionable_feedback: [
-                "OPTIMIZE_NEURAL_EFFICIENCY_IN_COGNITIVE_BLINDSPOTS.",
-                "LEVERAGE_HIGH_EQ_FOR_STAKEHOLDER_SYNCHRONIZATION.",
-                "INTENSIFY_STRESS_TESTING_IN_NON_LINEAR_ENVIRONMENTS."
-              ]
-            }
-          }],
-          peer_scores: { Technical: 75, Product: 82, Leadership: 88, Communication: 85, Adaptability: 90 }
-        });
+        setError("Failed to synchronize student metrics from the database node.");
       } finally {
         setLoading(false);
       }
@@ -105,6 +84,26 @@ export default function Dashboard() {
   const report = assessment.development_report || {};
   const maxFitValue = assessment.founder_fit ? Math.max(...Object.values(assessment.founder_fit as Record<string, number>)) : 96;
   const founderFitType = assessment.founder_fit ? Object.keys(assessment.founder_fit)[0].toUpperCase() : "THE_BUILDER";
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0e1416] flex items-center justify-center p-6 font-mono text-center">
+        <div className="bg-black/60 border border-red-500/30 p-8 rounded-xl max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-[0.2em]">Telemetry Connection Failed</h2>
+          <p className="text-[#bbc9cd] text-sm mb-6 leading-relaxed">
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-red-950/40 border border-red-500/40 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-950/60 active:scale-95 transition-all"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || loading) {
     return <LoadingScreen title="Synchronizing Matrix" subtitle="Establishing Secure Datalink" />;
