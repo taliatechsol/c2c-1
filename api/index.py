@@ -56,7 +56,7 @@ class StudentOnboard(BaseModel):
     email: str
     department: str
     graduation_year: int
-    institution_id: Optional[int] = None
+    institution_id: Optional[str] = None
 
 class StudentProfileUpdate(BaseModel):
     bio: Optional[str] = None
@@ -189,39 +189,33 @@ async def onboard_institution(inst: InstitutionOnboard, client = Depends(require
 
 @router.post("/onboard/student")
 async def onboard_student(student: StudentOnboard, client = Depends(require_supabase)):
-    domain = student.email.split("@")[-1]
     try:
-        inst_res = client.table("institutions").select("*").eq("domain", domain).execute()
+        data = student.dict(exclude_unset=True)
+        is_verified = False
+        inst_id = student.institution_id
         
-        if not inst_res.data:
-            # Check if a default/sandbox institution exists, otherwise create it
-            sandbox_res = client.table("institutions").select("*").eq("domain", "sandbox.c2c.edu").execute()
-            if sandbox_res.data:
-                inst_data = sandbox_res.data[0]
-            else:
-                # Create a sandbox institution
-                sandbox_payload = {
-                    "name": "Global Sandbox University",
-                    "type": "University",
-                    "domain": "sandbox.c2c.edu",
-                    "location": "Cloud Node"
-                }
-                new_inst = client.table("institutions").insert(sandbox_payload).execute()
-                inst_data = new_inst.data[0] if new_inst.data else None
-            
-            if not inst_data:
-                raise HTTPException(status_code=400, detail="Institution domain not registered and Sandbox allocation failed")
-            
-            institution_id = inst_data["id"]
+        if inst_id:
+            try:
+                rpc_res = client.rpc('check_whitelist_email', {'inst_id': inst_id, 'check_email': student.email}).execute()
+                is_verified = bool(rpc_res.data)
+            except Exception as e:
+                logger.warning(f"Whitelist check failed: {e}")
         else:
-            institution_id = inst_res.data[0]["id"]
-            
-        data = student.dict()
-        data["institution_id"] = institution_id
+            domain = student.email.split("@")[-1]
+            inst_res = client.table("institutions").select("*").eq("domain", domain).execute()
+            if not inst_res.data:
+                sandbox_res = client.table("institutions").select("*").eq("domain", "sandbox.c2c.edu").execute()
+                if sandbox_res.data:
+                    inst_id = sandbox_res.data[0]["id"]
+            else:
+                inst_id = inst_res.data[0]["id"]
+                
+        if inst_id:
+            data["institution_id"] = inst_id
+        data["is_verified"] = is_verified
+        
         res = client.table("students").insert(data).execute()
         return res.data
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"ERROR onboard_student: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -754,3 +748,25 @@ app.include_router(router, prefix="/api")
 @app.get("/")
 def root():
     return {"status": "c2c api root online"}
+
+
+@router.get("/institution/{institution_id}/cohort")
+async def get_institution_cohort(institution_id: str, client = Depends(require_supabase), current_user = Depends(require_role(["institution", "admin"]))):
+    try:
+        res = client.table("students").select("id, full_name, email, department, graduation_year, tech_fit_index, sales_fit_index, resume_url, skills, is_verified, created_at").eq("institution_id", institution_id).execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"ERROR get_institution_cohort: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/institution/{institution_id}/verify")
+async def verify_student(institution_id: str, payload: dict, client = Depends(require_supabase), current_user = Depends(require_role(["institution", "admin"]))):
+    student_id = payload.get("student_id")
+    if not student_id:
+        raise HTTPException(status_code=400, detail="student_id required")
+    try:
+        res = client.table("students").update({"is_verified": True}).eq("id", student_id).eq("institution_id", institution_id).execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"ERROR verify_student: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
