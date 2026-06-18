@@ -42,12 +42,13 @@ ON institution_whitelist USING (
 );
 
 
+
 -- 4. Secure function for student onboarding to check whitelist without reading whole table
 CREATE OR REPLACE FUNCTION check_whitelist_email(inst_id UUID, check_email TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS 
+AS $$
 DECLARE
     is_whitelisted BOOLEAN;
 BEGIN
@@ -58,4 +59,4 @@ BEGIN
     
     RETURN is_whitelisted;
 END;
-;
+$$;
